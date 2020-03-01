@@ -10,25 +10,25 @@ Clone of Node-RED function node with capability to automatically install used NP
 ## Usage
 
 The Node-RED **functionx** node behaves like the normal **function**
-node, with the exception of allowing the use of NPM modules within
-the script inside the block. It scans the script for any `require()`
-statements and automatically installs the module specified in the
-`require()` statement. The module is automatically cleaned from the disk
-when the Node-RED process closes.
+node, with the exception of allowing the use of NPM modules within the
+script inside the block. The node scans the script for any `require()`
+statements and automatically installs the NPM module referenced in
+the `require()` statement. The temporarily installed NPM module is
+automatically cleaned from the disk when the Node-RED process closes.
 
 ```javascript
-var lowerCase = require('lower-case@1.1.3') // install specific version
-var upperCase = require('upper-case');      // install latest   version
+var upperCase = require("upper-case");      // install latest   version
+var lowerCase = require("lower-case@1.1.3") // install specific version
 msg.payload = {             
-    upper: upperCase('Hello World'),
-    lower: lowerCase('Hello World')
-} ;
+    upper: upperCase("Hello World"),
+    lower: lowerCase("Hello World")
+};
 return msg;
 ```
 
 ## License
 
-This work is licensed under the [Apache License, Version 2.0](LICENSE).
+This work is licensed under the [Apache License 2.0](https://spdx.org/licenses/Apache-2.0.html).
 
 ## Credits
 
@@ -36,6 +36,6 @@ This Node-RED node is a derived from the latest
 version (as of 2020-03-01) of the official
 <a href="https://github.com/node-red/node-red/blob/master/packages/node_modules/%40node-red/nodes/core/function/10-function.js">
 Node-RED function node</a> and was patched with the extra functionality
-from John O'Connor <a
-href="https://github.com/sax1johno/node-red-contrib-function-npm">fork of the node-red-contrib-function-npm</a> Node-RED node.
+from John O'Connor
+<a href="https://github.com/sax1johno/node-red-contrib-function-npm">fork of the node-red-contrib-function-npm</a> Node-RED node.
 

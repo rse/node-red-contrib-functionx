@@ -14,10 +14,22 @@
  * limitations under the License.
  **/
 
+
 module.exports = function(RED) {
     "use strict";
     var util = require("util");
     var vm = require("vm");
+
+    var npm                = require("npm");
+    var events             = require("events");
+    var strip              = require("strip-comments");
+    const { npmInstallTo } = require("npm-install-to");
+    var temp               = require("temp").track();
+
+    var tempDir = temp.mkdirSync();
+    var tempNodeModulesPath = tempDir + "/node_modules/";
+
+    var eventEmitter = new events.EventEmitter();
 
     function sendResults(node,send,_msgid,msgs,cloneFirstMessage) {
         if (msgs == null) {

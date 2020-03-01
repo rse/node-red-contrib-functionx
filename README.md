@@ -35,7 +35,7 @@ This work is licensed under the [Apache License, Version 2.0](LICENSE).
 This Node-RED node is a derived from the latest
 version (as of 2020-03-01) of the official
 <a href="https://github.com/node-red/node-red/blob/master/packages/node_modules/%40node-red/nodes/core/function/10-function.js">
-Node-RED function node</a> and was patched it with the extra functionality
+Node-RED function node</a> and was patched with the extra functionality
 from John O'Connor <a
 href="https://github.com/sax1johno/node-red-contrib-function-npm">fork of the node-red-contrib-function-npm</a> Node-RED node.
 

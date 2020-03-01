@@ -270,7 +270,7 @@ module.exports = function(RED) {
                     setTimeout(node.status.bind(node, {}), 5000);
                 }
                 else {
-                    var msg = errors.length.toString() + " package(s) failed.";
+                    var msg = errors.length.toString() + " package(s) installations failed.";
                     errors.forEach(function (e) {
                         msg = msg + "\r\n" + e.moduleName;
                     });
@@ -288,7 +288,7 @@ module.exports = function(RED) {
               itemsProcessed++;
             }
             else {
-                node.status({ fill: "blue", shape: "dot", text: "installing" });
+                node.status({ fill: "blue", shape: "dot", text: "installing packages" });
                 npm.load({ prefix: tempDir, progress: false, loglevel: 'silent' }, function (er) {
                     if (er) {
                         errors.push({ moduleName: npmModule.fullName, error: er });
@@ -427,7 +427,7 @@ module.exports = function(RED) {
                 if (!checkPackageLoad()) {
                     var intervalId = setInterval(function () {
                         if (!checkPackageLoad())
-                            node.status("Waiting for package download");
+                            node.status("waiting for packages");
                         else {
                             eventEmitter.emit('load-complete');
                             clearInterval(intervalId);

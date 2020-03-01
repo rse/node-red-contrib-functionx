@@ -1,0 +1,19 @@
+{
+    "name":        "node-red-contrib-functionx",
+    "version":     "0.9.0",
+    "description": "Clone of the Node-RED function node with capability to automatically install used NPM packages",
+    "license":     "Apache-2.0",
+    "author":      { "name": "Dr. Ralf S. Engelschall", "email": "rse@engelschall.com" },
+    "keywords":    [ "node-red", "function", "npm", "require" ],
+    "repository":  { "type": "git", "url": "https://github.com/rse/node-red-contrib-functionx" },
+    "dependencies": {
+        "npm":            "6.14.1",
+        "strip-comments": "2.0.1",
+        "temp":           "0.9.1"
+    },
+    "node-red": {
+        "nodes": {
+            "functionx": "functionx.js"
+        }
+    }
+}

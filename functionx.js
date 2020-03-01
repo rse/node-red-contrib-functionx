@@ -360,7 +360,7 @@ module.exports = function(RED) {
             });
             this.on("input", function(msg,send,done) {
 
-            eventEmitter.on('load-complete', function () { /* INDENTATION PRESERVING SURGIVAL INJECTION */
+            eventEmitter.on('load-complete', () => { /* INDENTATION PRESERVING SURGIVAL INJECTION */
 
                 try {
                     var start = process.hrtime();

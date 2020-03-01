@@ -57,7 +57,7 @@ module.exports = function(RED) {
                             if (type === 'object') {
                                 type = Buffer.isBuffer(msg)?'Buffer':(util.isArray(msg)?'Array':'Date');
                             }
-                            node.error(RED._("function.error.non-message-returned",{ type: type }));
+                            node.error(RED._("node-red:function.error.non-message-returned",{ type: type }));
                         }
                     }
                 }
@@ -134,7 +134,7 @@ module.exports = function(RED) {
                 },
                 on: function() {
                     if (arguments[0] === "input") {
-                        throw new Error(RED._("function.error.inputListener"));
+                        throw new Error(RED._("node-red:function.error.inputListener"));
                     }
                     node.on.apply(node, arguments);
                 },

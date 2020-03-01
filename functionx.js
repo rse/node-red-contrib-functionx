@@ -14,7 +14,6 @@
  * limitations under the License.
  **/
 
-
 module.exports = function(RED) {
     "use strict";
     var util = require("util");

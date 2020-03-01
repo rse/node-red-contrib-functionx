@@ -20,29 +20,23 @@
 </script>
 
 <script type="text/x-red" data-help-name="functionx">
-    <p>An enhanced function node that allows the automatic lazy-loading of NPM modules from within the function script.</p>
-    <p>It scans the script for the <tt>require()</tt> statements and automatically installs the NPM package by that name to be used in the script.</p>
-    <p>The NPM package is only installed temporarily, it is automatically removed when the Node-RED application is closed.</p>
-    <p>Example Usage</p>
+    <p>A clone of the standard Node-RED <b>function</b> node that allows the automatic and lazy installation of NPM modules used within the JavaScript code.</p>
+    <p>The NPM packages are only installed temporarily and are automatically removed when the Node-RED application is terminated.</p>
+    <p>Example Usage:</p>
     <pre>
-        //  syntax to install a specific version
-        var lowerCase = require('lower-case@1.1.3')
-
-        //  if no version specified the latest version is installed
-        var upperCase = require('upper-case');
-
-        msg.payload = {
-            upper: upperCase('Hello World'),
-            lower: lowerCase('Hello World')
-        };
-        return msg;
-    </pre>
+var upperCase = require("upper-case");      // install latest   version
+var lowerCase = require("lower-case@1.1.3") // install specific version
+msg.payload = {
+    upper: upperCase("Hello World"),
+    lower: lowerCase("Hello World")
+};
+return msg;</pre>
 
     <p>See the <a target="_blank" href="https://github.com/rse/node-red-contrib-functionx">GitHub repository</a>
-    for more information and source code for NPM function block.</p>
+    for more information and the source code for this Node-RED <b>functionx</b> node.</p>
 
     <p>See the <a target="_blank" href="http://nodered.org/docs/writing-functions.html">Node-RED online documentation</a>
-    for more information on writing Node-RED functions.</p>
+    for more information on writing Node-RED functions in general.</p>
 </script>
 
 <script type="text/javascript">

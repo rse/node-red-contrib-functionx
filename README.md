@@ -14,7 +14,7 @@ $ npm install node-red-contrib-functionx
 The Node-RED **functionx** node behaves exactly like the standard
 Node-RED **function** node, with the exception of allowing the use of
 NPM modules within the JavaScript code. For this, the node scans the
-JavaScript code for any `require()` statements and automatocally and
+JavaScript code for any `require()` statements and automatically and
 temporarily installs the NPM modules referenced in the `require()`
 statements. The temporarily installed NPM modules are automatically
 cleaned from the disk when the Node-RED process closes.

@@ -22,13 +22,13 @@ cleaned from the disk when the Node-RED process closes.
 ## Example
 
 ```js
-var upperCase = require("upper-case");      // install latest   version
+var upperCase = require("upper-case")       // install latest   version
 var lowerCase = require("lower-case@1.1.3") // install specific version
 msg.payload = {             
     upper: upperCase("Hello World"),
     lower: lowerCase("Hello World")
-};
-return msg;
+}
+return msg
 ```
 
 ## License

@@ -38,8 +38,8 @@ This Node-RED node is licensed under the [Apache License 2.0](https://spdx.org/l
 ## Credits
 
 This Node-RED node is a derived from the latest
-version (as of 2020-03-01) of the official
-[Node-RED **function** node](https://github.com/node-red/node-red/blob/master/packages/node_modules/%40node-red/nodes/core/function/10-function.js)
+version (as of 2020-07-05) of the official
+[Node-RED 1.1.0 **function** node](https://github.com/node-red/node-red/blob/master/packages/node_modules/%40node-red/nodes/core/function/10-function.js)
 and was patched with the extra functionality from John O'Connor's
 [fork of the node-red-contrib-function-npm](https://github.com/sax1johno/node-red-contrib-function-npm)
 Node-RED node.

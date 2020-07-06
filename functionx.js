@@ -28,8 +28,6 @@ module.exports = function(RED) {
     var tempDir = temp.mkdirSync();
     var tempNodeModulesPath = tempDir + "/node_modules/";
 
-    var eventEmitter = new events.EventEmitter();
-
     function sendResults(node,send,_msgid,msgs,cloneFirstMessage) {
         if (msgs == null) {
             return;
@@ -68,22 +66,55 @@ module.exports = function(RED) {
         }
     }
 
+    function createVMOpt(node, kind) {
+        var opt = {
+            filename: 'Function node'+kind+':'+node.id+(node.name?' ['+node.name+']':''), // filename for stack traces
+            displayErrors: true
+            // Using the following options causes node 4/6 to not include the line number
+            // in the stack output. So don't use them.
+            // lineOffset: -11, // line number offset to be used for stack traces
+            // columnOffset: 0, // column number offset to be used for stack traces
+        };
+        return opt;
+    }
+
+    function updateErrorInfo(err) {
+        if (err.stack) {
+            var stack = err.stack.toString();
+            var m = /^([^:]+):([^:]+):(\d+).*/.exec(stack);
+            if (m) {
+                var line = parseInt(m[3]) -1;
+                var kind = "body:";
+                if (/setup/.exec(m[1])) {
+                    kind = "setup:";
+                }
+                if (/cleanup/.exec(m[1])) {
+                    kind = "cleanup:";
+                }
+                err.message += " ("+kind+"line "+line+")";
+            }
+        }
+    }
+
     function FunctionNode(n) {
         RED.nodes.createNode(this,n);
         var node = this;
-        this.name = n.name;
-        this.func = n.func;
+        node.name = n.name;
+        node.func = n.func;
+        node.ini = n.initialize ? n.initialize.trim() : "";
+        node.fin = n.finalize ? n.finalize.trim() : "";
 
         var handleNodeDoneCall = true;
+
         // Check to see if the Function appears to call `node.done()`. If so,
         // we will assume it is well written and does actually call node.done().
         // Otherwise, we will call node.done() after the function returns regardless.
-        if (/node\.done\s*\(\s*\)/.test(this.func)) {
+        if (/node\.done\s*\(\s*\)/.test(node.func)) {
             handleNodeDoneCall = false;
         }
 
         var functionText = "var results = null;"+
-                           "results = (function(msg,__send__,__done__){ "+
+                           "results = (async function(msg,__send__,__done__){ "+
                               "var __msgid__ = msg._msgid;"+
                               "var node = {"+
                                  "id:__node__.id,"+
@@ -98,11 +129,13 @@ module.exports = function(RED) {
                                  "send:function(msgs,cloneMsg){ __node__.send(__send__,__msgid__,msgs,cloneMsg);},"+
                                  "done:__done__"+
                               "};\n"+
-                              this.func+"\n"+
+                              node.func+"\n"+
                            "})(msg,send,done);";
-        this.topic = n.topic;
-        this.outstandingTimers = [];
-        this.outstandingIntervals = [];
+        var finScript = null;
+        var finOpt = null;
+        node.topic = n.topic;
+        node.outstandingTimers = [];
+        node.outstandingIntervals = [];
         var sandbox = {
             console:console,
             util:util,
@@ -193,12 +226,12 @@ module.exports = function(RED) {
                 arguments[0] = function() {
                     sandbox.clearTimeout(timerId);
                     try {
-                        func.apply(this,arguments);
+                        func.apply(node,arguments);
                     } catch(err) {
                         node.error(err,{});
                     }
                 };
-                timerId = setTimeout.apply(this,arguments);
+                timerId = setTimeout.apply(node,arguments);
                 node.outstandingTimers.push(timerId);
                 return timerId;
             },
@@ -214,12 +247,12 @@ module.exports = function(RED) {
                 var timerId;
                 arguments[0] = function() {
                     try {
-                        func.apply(this,arguments);
+                        func.apply(node,arguments);
                     } catch(err) {
                         node.error(err,{});
                     }
                 };
-                timerId = setInterval.apply(this,arguments);
+                timerId = setInterval.apply(node,arguments);
                 node.outstandingIntervals.push(timerId);
                 return timerId;
             },
@@ -237,6 +270,7 @@ module.exports = function(RED) {
                     sandbox.setTimeout(function(){ resolve(value); }, after);
                 });
             };
+            sandbox.promisify = util.promisify;
         }
 
         /* ==== */
@@ -350,37 +384,44 @@ module.exports = function(RED) {
 
         var context = vm.createContext(sandbox);
         try {
-            this.script = vm.createScript(functionText, {
-                filename: 'Function node:'+this.id+(this.name?' ['+this.name+']':''), // filename for stack traces
-                displayErrors: true
-                // Using the following options causes node 4/6 to not include the line number
-                // in the stack output. So don't use them.
-                // lineOffset: -11, // line number offset to be used for stack traces
-                // columnOffset: 0, // column number offset to be used for stack traces
-            });
-            this.on("input", function(msg,send,done) {
+            var iniScript = null;
+            var iniOpt = null;
+            if (node.ini && (node.ini !== "")) {
+                var iniText = "(async function () {\n"+node.ini +"\n})();";
+                iniOpt = createVMOpt(node, " setup");
+                iniScript = new vm.Script(iniText, iniOpt);
+            }
+            node.script = vm.createScript(functionText, createVMOpt(node, ""));
+            if (node.fin && (node.fin !== "")) {
+                var finText = "(function () {\n"+node.fin +"\n})();";
+                finOpt = createVMOpt(node, " cleanup");
+                finScript = new vm.Script(finText, finOpt);
+            }
+            var promise = Promise.resolve();
+            if (iniScript) {
+                promise = iniScript.runInContext(context, iniOpt);
+            }
 
-            eventEmitter.on('load-complete', () => { /* INDENTATION PRESERVING SURGIVAL INJECTION */
+            function processMessageReal(msg, send, done) {
+                var start = process.hrtime();
+                context.msg = msg;
+                context.send = send;
+                context.done = done;
 
-                try {
-                    var start = process.hrtime();
-                    context.msg = msg;
-                    context.send = send;
-                    context.done = done;
-
-                    this.script.runInContext(context);
-                    sendResults(this,send,msg._msgid,context.results,false);
+                node.script.runInContext(context);
+                context.results.then(function(results) {
+                    sendResults(node,send,msg._msgid,results,false);
                     if (handleNodeDoneCall) {
                         done();
                     }
 
                     var duration = process.hrtime(start);
                     var converted = Math.floor((duration[0] * 1e9 + duration[1])/10000)/100;
-                    this.metric("duration", msg, converted);
+                    node.metric("duration", msg, converted);
                     if (process.env.NODE_RED_FUNCTION_TIME) {
-                        this.status({fill:"yellow",shape:"dot",text:""+converted});
+                        node.status({fill:"yellow",shape:"dot",text:""+converted});
                     }
-                } catch(err) {
+                }).catch(err => {
                     if ((typeof err === "object") && err.hasOwnProperty("stack")) {
                         //remove unwanted part
                         var index = err.stack.search(/\n\s*at ContextifyScript.Script.runInContext/);
@@ -418,42 +459,82 @@ module.exports = function(RED) {
                     else {
                         done(JSON.stringify(err));
                     }
-                }
+                });
+            }
 
-                eventEmitter.removeAllListeners('load-complete');
-
-            }); /* INDENTATION PRESERVING SURGIVAL INJECTION */
-
-                if (!checkPackageLoad()) {
+            function processMessage(msg, send, done) {
+                if (checkPackageLoad())
+                    processMessageReal(msg, send, done);
+                else {
                     var intervalId = setInterval(function () {
-                        if (!checkPackageLoad())
-                            node.status("waiting for packages");
-                        else {
-                            eventEmitter.emit('load-complete');
+                        if (checkPackageLoad()) {
                             clearInterval(intervalId);
+                            processMessageReal(msg, send, done);
                         }
-                    }, 1000);
+                        else
+                            node.status("waiting for packages");
+                    }, 500);
                 }
-                else
-                    eventEmitter.emit('load-complete');
+            }
 
+            const RESOLVING = 0;
+            const RESOLVED = 1;
+            const ERROR = 2;
+            var state = RESOLVING;
+            var messages = [];
+
+            node.on("input", function(msg,send,done) {
+                if(state === RESOLVING) {
+                    messages.push({msg:msg, send:send, done:done});
+                }
+                else if(state === RESOLVED) {
+                    processMessage(msg, send, done);
+                }
             });
-
-            this.on("close", function() {
+            node.on("close", function() {
+                if (finScript) {
+                    try {
+                        finScript.runInContext(context, finOpt);
+                    }
+                    catch (err) {
+                        node.error(err);
+                    }
+                }
                 while (node.outstandingTimers.length > 0) {
                     clearTimeout(node.outstandingTimers.pop());
                 }
                 while (node.outstandingIntervals.length > 0) {
                     clearInterval(node.outstandingIntervals.pop());
                 }
-                this.status({});
+                node.status({});
             });
-        } catch(err) {
+
+            promise.then(function (v) {
+                var msgs = messages;
+                messages = [];
+                while (msgs.length > 0) {
+                    msgs.forEach(function (s) {
+                        processMessage(s.msg, s.send, s.done);
+                    });
+                    msgs = messages;
+                    messages = [];
+                }
+                state = RESOLVED;
+            }).catch((error) => {
+                messages = [];
+                state = ERROR;
+                node.error(error);
+            });
+
+        }
+        catch(err) {
             // eg SyntaxError - which v8 doesn't include line number information
             // so we can't do better than this
-            this.error(err);
+            updateErrorInfo(err);
+            node.error(err);
         }
     }
     RED.nodes.registerType("functionx",FunctionNode);
     RED.library.register("functions");
 };
+

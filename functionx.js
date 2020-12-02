@@ -136,6 +136,8 @@ module.exports = function(RED) {
         node.topic = n.topic;
         node.outstandingTimers = [];
         node.outstandingIntervals = [];
+        node.clearStatus = false;
+
         var sandbox = {
             console:console,
             util:util,
@@ -172,6 +174,7 @@ module.exports = function(RED) {
                     node.on.apply(node, arguments);
                 },
                 status: function() {
+                    node.clearStatus = true;
                     node.status.apply(node, arguments);
                 }
             },
@@ -523,7 +526,9 @@ module.exports = function(RED) {
                 while (node.outstandingIntervals.length > 0) {
                     clearInterval(node.outstandingIntervals.pop());
                 }
-                node.status({});
+                if (node.clearStatus) {
+                    node.status({});
+                }
             });
 
             promise.then(function (v) {
